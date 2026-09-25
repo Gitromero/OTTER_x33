@@ -4,7 +4,7 @@ reference ISS (rv32i.py) and compare registers + data memory at the end.
 
     python3 scripts/fuzz.py              # 200 random programs
     python3 scripts/fuzz.py -n 50 -s 7   # 50 programs starting at seed 7
-    python3 scripts/fuzz.py --seed 123 --keep   # rerun one, keep build/fuzz.s + waves
+    python3 scripts/fuzz.py --seed 123 --keep   # rerun one, keep build/fuzz.s + build/otter.fst
 
 Programs use only a handful of registers so almost every instruction depends
 on a recent one (forwarding / load-use), plus forward branches, jal, jalr
@@ -134,7 +134,7 @@ def compile_sim():
         for f in os.listdir(os.path.join(ROOT, d)) if f.endswith(".sv") and f != "otter_pkg.sv")
     subprocess.run(["iverilog", "-g2012", "-Wno-timescale", '-DMEM_FILE="build/fuzz.mem"',
                     "-s", "tb_OTTER_Wrapper", "-o", "build/fuzz.vvp", *srcs,
-                    "sim/tb_OTTER_Wrapper.sv"], cwd=ROOT, check=True,
+                    "sim/tb_OTTER_Wrapper.sv", "sim/otter_probe.sv"], cwd=ROOT, check=True,
                    stderr=subprocess.DEVNULL)
 
 
@@ -152,7 +152,8 @@ def run_one(seed, keep=False):
     steps = 0
     while iss.step():
         steps += 1
-    out = subprocess.run(["vvp", "-n", "build/fuzz.vvp", f"+CYCLES={3 * steps + 100}", "+DUMP", "+VERBOSE", f"+SWITCHES={switches:x}",
+    wave = ["-fst", "+WAVE=build/otter.fst"] if keep else ["+NOWAVE"]
+    out = subprocess.run(["vvp", "-n", "build/fuzz.vvp", *wave, f"+CYCLES={3 * steps + 100}", "+DUMP", "+VERBOSE", f"+SWITCHES={switches:x}",
                           f"+DUMP_LO={DATA_LO:x}", f"+DUMP_HI={DATA_HI:x}"],
                          cwd=ROOT, capture_output=True, text=True).stdout
     errs = []

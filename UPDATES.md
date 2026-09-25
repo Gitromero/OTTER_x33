@@ -4,6 +4,61 @@ Newest entries first. Each entry: what changed, why, and how it was verified.
 
 ---
 
+## 2026-09-24 — Waveform viewer setup, program/unit-test tooling, project template
+
+### Waveforms (Vivado-style GTKWave)
+- **FST instead of VCD** (`vvp -fst`): Test_All wave went from 23 MB to 0.7 MB
+  and loads instantly. `WAVE_FMT=vcd` or `WAVE_FMT=none` (fastest) still available.
+- **`sim/otter_probe.sv`** (new): Icarus dumps `ID_inst`/`ALU_inst`/... as a single
+  328-bit vector, which is unreadable. The probe exposes named signals per stage
+  (PC, valid, instruction word, forwarding selects, ALU inputs/op/result, memory
+  address/data, writeback reg/data), the register file as `x01_ra`..`x31_t6`, and
+  text versions of pc_source / ALU op / forwarding source.
+- **`sim/otter.gtkw`** (new): saved layout loaded by `make wave`. One colored group
+  per stage (IF/ID/EX/MEM/WB), plus Clock/Control, Register File, Board I/O.
+- **`scripts/gtkwave_disasm.py`** (new): GTKWave translate filter, so each stage's
+  instruction shows as `addi x1, x0, 10` (`--` for bubbles).
+- Testbench: `+WAVE=<file>` picks the dump file, `+NOWAVE` skips dumping.
+  `fuzz.py` no longer writes a waveform per program (only with `--keep`).
+
+### Programs
+- `scripts/rv32i.py`: added `disasm()` and a command line (`asm`, `dis`, `run`).
+- `asm/` (new): `make sim PROG=<name>` assembles `asm/<name>.s` into
+  `mem/<name>.mem` when the source is newer. `asm/example.s` sums 1..10 to the
+  7-seg and echoes switches to the LEDs.
+- `make asm`, `make dis`, `make iss` (run on the reference model, print registers).
+
+### Unit tests
+- `sim/unit/tb_ALU.sv` (new): all 16 ALU_FUN codes against a reference model,
+  36 corner-case operand pairs + 200 random each. Template for other modules.
+- `make unit T=<Module>`, `make units`, `make unit-wave T=<Module>`; a test fails
+  on any line starting with `FAIL`.
+
+### Other
+- `make help`, `make check-env`; Icarus's "sorry: constant selects" noise is
+  filtered out of build output.
+- `.vscode/`: Verilator lint-on-save (Verilog-HDL extension), tasks for
+  test/sim/wave/units/fuzz/lint with lint warnings in the Problems panel.
+- `scripts/new_hdl_project.sh` (new): creates a new project with this same
+  environment (generic Makefile, testbench/unit-test/GTKWave templates, VS Code
+  config, README/UPDATES, example counter). `--riscv` copies the RV32I tools,
+  `--install` installs the tools, `--force` only adds missing files.
+
+### Verification results
+- `make test`: Test_All 37/37 PASS
+- `make fuzz N=30`: 30/30 match; `fuzz.py --keep` writes `build/otter.fst`
+- `make units`: tb_ALU PASS; with `sra` deliberately broken it reports 102
+  errors and exits non-zero
+- Disassembler round trip: 50 fuzz programs assemble -> disassemble -> assemble
+  to identical words
+- `sim/otter.gtkw` checked with GTKWave screenshots: groups, disassembly and
+  text decodes display correctly
+- `new_hdl_project.sh`: fresh project passes `make test`, `make units`,
+  `make lint`, and its layout opens in GTKWave; refuses a non-empty directory
+  without `--force`
+
+---
+
 ## 2026-09-24 — Hazard/branch audit, JALR fix, random differential testing
 
 ### Bug fixed

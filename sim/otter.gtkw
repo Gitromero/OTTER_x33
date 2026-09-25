@@ -1,0 +1,231 @@
+[*] OTTER pipeline waveform layout (Vivado-style). Edit in GTKWave and File > Write Save File (Ctrl+S) to keep changes.
+[timestart] 0
+[size] 1600 1000
+[pos] -1 -1
+*-16.000000 0 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
+[treeopen] tb_OTTER_Wrapper.
+[treeopen] tb_OTTER_Wrapper.UUT.
+[treeopen] tb_OTTER_Wrapper.UUT.CPU.
+[sst_width] 240
+[signals_width] 230
+[sst_expanded] 1
+[sst_vpaned_height] 300
+@800200
+-Clock / Control
+@28
+tb_OTTER_Wrapper.probe.clk
+@28
+tb_OTTER_Wrapper.probe.rst
+@28
+tb_OTTER_Wrapper.probe.STALL
+@28
+tb_OTTER_Wrapper.probe.FLUSH
+@1000200
+-Clock / Control
+@800200
+-IF  Fetch
+@22
+[color] 1
+tb_OTTER_Wrapper.probe.IF_pc[31:0]
+@820
+[color] 1
+tb_OTTER_Wrapper.probe.IF_pc_source_name[63:0]
+@1000200
+-IF  Fetch
+@800200
+-ID  Decode
+@28
+[color] 2
+tb_OTTER_Wrapper.probe.ID_valid
+@22
+[color] 2
+tb_OTTER_Wrapper.probe.ID_pc[31:0]
+@4022
+^>1 ./scripts/gtkwave_disasm.py
+[color] 2
+tb_OTTER_Wrapper.probe.ID_ir[31:0]
+@24
+[color] 2
+tb_OTTER_Wrapper.probe.ID_rs1[4:0]
+@24
+[color] 2
+tb_OTTER_Wrapper.probe.ID_rs2[4:0]
+@22
+[color] 2
+tb_OTTER_Wrapper.probe.ID_rs1_data[31:0]
+@22
+[color] 2
+tb_OTTER_Wrapper.probe.ID_rs2_data[31:0]
+@1000200
+-ID  Decode
+@800200
+-EX  Execute
+@28
+[color] 3
+tb_OTTER_Wrapper.probe.EX_valid
+@22
+[color] 3
+tb_OTTER_Wrapper.probe.EX_pc[31:0]
+@4022
+^>1 ./scripts/gtkwave_disasm.py
+[color] 3
+tb_OTTER_Wrapper.probe.EX_ir[31:0]
+@820
+[color] 3
+tb_OTTER_Wrapper.probe.EX_fsel1_name[63:0]
+@820
+[color] 3
+tb_OTTER_Wrapper.probe.EX_fsel2_name[63:0]
+@22
+[color] 3
+tb_OTTER_Wrapper.probe.EX_rs1_fwd[31:0]
+@22
+[color] 3
+tb_OTTER_Wrapper.probe.EX_rs2_fwd[31:0]
+@22
+[color] 3
+tb_OTTER_Wrapper.probe.EX_srcA[31:0]
+@22
+[color] 3
+tb_OTTER_Wrapper.probe.EX_srcB[31:0]
+@820
+[color] 3
+tb_OTTER_Wrapper.probe.EX_alu_name[63:0]
+@22
+[color] 3
+tb_OTTER_Wrapper.probe.EX_alu_result[31:0]
+@24
+[color] 3
+tb_OTTER_Wrapper.probe.EX_rd[4:0]
+@1000200
+-EX  Execute
+@800200
+-MEM Memory
+@28
+[color] 4
+tb_OTTER_Wrapper.probe.MEM_valid
+@22
+[color] 4
+tb_OTTER_Wrapper.probe.MEM_pc[31:0]
+@4022
+^>1 ./scripts/gtkwave_disasm.py
+[color] 4
+tb_OTTER_Wrapper.probe.MEM_ir[31:0]
+@22
+[color] 4
+tb_OTTER_Wrapper.probe.MEM_addr[31:0]
+@22
+[color] 4
+tb_OTTER_Wrapper.probe.MEM_wdata[31:0]
+@28
+[color] 4
+tb_OTTER_Wrapper.probe.MEM_we
+@28
+[color] 4
+tb_OTTER_Wrapper.probe.MEM_rden
+@28
+[color] 4
+tb_OTTER_Wrapper.probe.IO_wr
+@1000200
+-MEM Memory
+@800200
+-WB  Writeback
+@28
+[color] 5
+tb_OTTER_Wrapper.probe.WB_valid
+@22
+[color] 5
+tb_OTTER_Wrapper.probe.WB_pc[31:0]
+@4022
+^>1 ./scripts/gtkwave_disasm.py
+[color] 5
+tb_OTTER_Wrapper.probe.WB_ir[31:0]
+@28
+[color] 5
+tb_OTTER_Wrapper.probe.WB_reg_wr
+@24
+[color] 5
+tb_OTTER_Wrapper.probe.WB_rd[4:0]
+@22
+[color] 5
+tb_OTTER_Wrapper.probe.WB_data[31:0]
+@1000200
+-WB  Writeback
+@800200
+-Register File
+@22
+tb_OTTER_Wrapper.probe.x01_ra[31:0]
+@22
+tb_OTTER_Wrapper.probe.x02_sp[31:0]
+@22
+tb_OTTER_Wrapper.probe.x03_gp[31:0]
+@22
+tb_OTTER_Wrapper.probe.x04_tp[31:0]
+@22
+tb_OTTER_Wrapper.probe.x05_t0[31:0]
+@22
+tb_OTTER_Wrapper.probe.x06_t1[31:0]
+@22
+tb_OTTER_Wrapper.probe.x07_t2[31:0]
+@22
+tb_OTTER_Wrapper.probe.x08_s0[31:0]
+@22
+tb_OTTER_Wrapper.probe.x09_s1[31:0]
+@22
+tb_OTTER_Wrapper.probe.x10_a0[31:0]
+@22
+tb_OTTER_Wrapper.probe.x11_a1[31:0]
+@22
+tb_OTTER_Wrapper.probe.x12_a2[31:0]
+@22
+tb_OTTER_Wrapper.probe.x13_a3[31:0]
+@22
+tb_OTTER_Wrapper.probe.x14_a4[31:0]
+@22
+tb_OTTER_Wrapper.probe.x15_a5[31:0]
+@22
+tb_OTTER_Wrapper.probe.x16_a6[31:0]
+@22
+tb_OTTER_Wrapper.probe.x17_a7[31:0]
+@22
+tb_OTTER_Wrapper.probe.x18_s2[31:0]
+@22
+tb_OTTER_Wrapper.probe.x19_s3[31:0]
+@22
+tb_OTTER_Wrapper.probe.x20_s4[31:0]
+@22
+tb_OTTER_Wrapper.probe.x21_s5[31:0]
+@22
+tb_OTTER_Wrapper.probe.x22_s6[31:0]
+@22
+tb_OTTER_Wrapper.probe.x23_s7[31:0]
+@22
+tb_OTTER_Wrapper.probe.x24_s8[31:0]
+@22
+tb_OTTER_Wrapper.probe.x25_s9[31:0]
+@22
+tb_OTTER_Wrapper.probe.x26_s10[31:0]
+@22
+tb_OTTER_Wrapper.probe.x27_s11[31:0]
+@22
+tb_OTTER_Wrapper.probe.x28_t3[31:0]
+@22
+tb_OTTER_Wrapper.probe.x29_t4[31:0]
+@22
+tb_OTTER_Wrapper.probe.x30_t5[31:0]
+@22
+tb_OTTER_Wrapper.probe.x31_t6[31:0]
+@1000200
+-Register File
+@800200
+-Board I/O
+@22
+tb_OTTER_Wrapper.SWITCHES[15:0]
+@22
+tb_OTTER_Wrapper.LEDS[15:0]
+@22
+tb_OTTER_Wrapper.UUT.r_SSEG[15:0]
+@1000200
+-Board I/O
+[pattern_trace] 1
+[pattern_trace] 0

@@ -1,0 +1,22 @@
+{
+    // Ctrl+Shift+B runs `make test`; Ctrl+Shift+P > "Run Task" for the rest.
+    "version": "2.0.0",
+    "tasks": [
+        { "label": "make test", "type": "shell", "command": "make test",
+          "group": { "kind": "build", "isDefault": true }, "problemMatcher": [] },
+        { "label": "make sim (pick program)", "type": "shell",
+          "command": "make sim PROG=${input:prog} CYCLES=${input:cycles}", "problemMatcher": [] },
+        { "label": "make wave", "type": "shell", "command": "make wave", "problemMatcher": [] },
+        { "label": "make units", "type": "shell", "command": "make units", "group": "test", "problemMatcher": [] },
+        { "label": "make fuzz", "type": "shell", "command": "make fuzz", "group": "test", "problemMatcher": [] },
+        { "label": "make lint", "type": "shell", "command": "make lint",
+          "problemMatcher": {
+              "owner": "verilator", "fileLocation": ["relative", "${workspaceFolder}"],
+              "pattern": { "regexp": "^%(Warning|Error)[^:]*: ([^:]+):(\\d+):(\\d+): (.*)$",
+                           "severity": 1, "file": 2, "line": 3, "column": 4, "message": 5 } } }
+    ],
+    "inputs": [
+        { "id": "prog", "type": "promptString", "description": "mem/<name>.mem or asm/<name>.s", "default": "Test_All" },
+        { "id": "cycles", "type": "promptString", "description": "CPU cycles", "default": "2000" }
+    ]
+}

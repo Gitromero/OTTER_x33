@@ -1,4 +1,10 @@
+#!/usr/bin/env python3
 """Minimal RV32I assembler + reference instruction-set simulator for OTTER tests.
+
+Command line:
+    python3 scripts/rv32i.py asm prog.s -o mem/prog.mem   # assemble
+    python3 scripts/rv32i.py dis mem/prog.mem             # listing
+    python3 scripts/rv32i.py run prog.s                    # run on the ISS, print regs
 
 Assembler syntax: one instruction per line, registers as x0..x31, labels as
 `name:`, comments with `#`. Pseudo-ops: nop, li, mv, j, beqz, bnez.
@@ -127,6 +133,65 @@ def assemble(text, base=0):
     return words
 
 
+ABI = ["zero", "ra", "sp", "gp", "tp", "t0", "t1", "t2", "s0", "s1", "a0", "a1", "a2",
+       "a3", "a4", "a5", "a6", "a7", "s2", "s3", "s4", "s5", "s6", "s7", "s8", "s9",
+       "s10", "s11", "t3", "t4", "t5", "t6"]
+_NAME = {v: k for k, v in R_OPS.items()}
+
+
+def disasm(ir, pc=None):
+    """One instruction word -> assembly text (x-register names, same syntax as
+    assemble()). Branch/jal targets are absolute when `pc` is given."""
+    op, rd, f3 = ir & 0x7F, (ir >> 7) & 0x1F, (ir >> 12) & 7
+    rs1, rs2, f7 = (ir >> 15) & 0x1F, (ir >> 20) & 0x1F, ir >> 25
+    i_imm = sx(ir >> 20, 12)
+    x = lambda n: f"x{n}"
+    tgt = lambda off: f"0x{(pc + off) & MASK:x}" if pc is not None else str(off)
+    if ir == 0x00000013:
+        return "nop"
+    if op == 0x33 and (f7, f3) in _NAME:
+        return f"{_NAME[(f7, f3)]} {x(rd)}, {x(rs1)}, {x(rs2)}"
+    if op == 0x13:
+        if f3 in (1, 5):
+            name = {v: k for k, v in SHIFT_I.items()}.get((f7, f3))
+            if name:
+                return f"{name} {x(rd)}, {x(rs1)}, {rs2}"
+        else:
+            name = {v: k for k, v in I_OPS.items()}[f3]
+            return f"{name} {x(rd)}, {x(rs1)}, {i_imm}"
+    if op == 0x03 and f3 in LOADS.values():
+        name = {v: k for k, v in LOADS.items()}[f3]
+        return f"{name} {x(rd)}, {i_imm}({x(rs1)})"
+    if op == 0x23 and f3 in STORES.values():
+        name = {v: k for k, v in STORES.items()}[f3]
+        s_imm = sx(((ir >> 25) << 5) | ((ir >> 7) & 0x1F), 12)
+        return f"{name} {x(rs2)}, {s_imm}({x(rs1)})"
+    if op == 0x63 and f3 in BRANCHES.values():
+        name = {v: k for k, v in BRANCHES.items()}[f3]
+        b_imm = sx((((ir >> 31) & 1) << 12) | (((ir >> 7) & 1) << 11)
+                   | (((ir >> 25) & 0x3F) << 5) | (((ir >> 8) & 0xF) << 1), 13)
+        return f"{name} {x(rs1)}, {x(rs2)}, {tgt(b_imm)}"
+    if op == 0x6F:
+        j_imm = sx((((ir >> 31) & 1) << 20) | (((ir >> 12) & 0xFF) << 12)
+                   | (((ir >> 20) & 1) << 11) | (((ir >> 21) & 0x3FF) << 1), 21)
+        return f"jal {x(rd)}, {tgt(j_imm)}"
+    if op == 0x67 and f3 == 0:
+        return f"jalr {x(rd)}, {i_imm}({x(rs1)})"
+    if op == 0x37:
+        return f"lui {x(rd)}, 0x{ir >> 12:x}"
+    if op == 0x17:
+        return f"auipc {x(rd)}, 0x{ir >> 12:x}"
+    if op == 0x73:
+        csr = {0x305: "mtvec", 0x341: "mepc", 0x342: "mcause", 0x300: "mstatus",
+               0x304: "mie"}.get(ir >> 20, f"0x{ir >> 20:x}")
+        if f3 == 0:
+            return {0x00000073: "ecall", 0x00100073: "ebreak", 0x30200073: "mret"}.get(ir, "system?")
+        name = ["", "csrrw", "csrrs", "csrrc", "", "csrrwi", "csrrsi", "csrrci"][f3]
+        src = str(rs1) if f3 & 4 else x(rs1)
+        return f"{name} {x(rd)}, {csr}, {src}" if name else f".word 0x{ir:08x}"
+    return f".word 0x{ir:08x}"
+
+
 def write_mem(path, words, size_words):
     """Write a $readmemh file, zero-padded to size_words."""
     words = list(words) + [0] * (size_words - len(words))
@@ -214,3 +279,60 @@ class ISS:
             if not self.step():
                 return
         raise RuntimeError("program did not reach its final `j .`")
+
+
+def read_mem(path):
+    """Read a $readmemh file (one hex word per line, // comments allowed)."""
+    words = []
+    for line in open(path):
+        line = line.split("//")[0].strip()
+        if line and not line.startswith("@"):
+            words.append(int(line, 16))
+    return words
+
+
+def main():
+    import argparse
+    import signal
+    signal.signal(signal.SIGPIPE, signal.SIG_DFL)   # quiet `| head`
+    ap = argparse.ArgumentParser(description="RV32I assembler / disassembler / reference sim")
+    sub = ap.add_subparsers(dest="cmd", required=True)
+    a = sub.add_parser("asm", help="assemble a .s file into a .mem file")
+    a.add_argument("src")
+    a.add_argument("-o", "--out", required=True)
+    a.add_argument("--words", type=int, default=16384, help="pad to N words (default: full 64 KiB)")
+    d = sub.add_parser("dis", help="disassemble a .mem file")
+    d.add_argument("mem")
+    d.add_argument("--all", action="store_true", help="also list zero words")
+    r = sub.add_parser("run", help="run a .s or .mem file on the reference ISS")
+    r.add_argument("prog")
+    r.add_argument("--switches", type=lambda v: int(v, 16), default=0)
+    r.add_argument("--max-steps", type=int, default=100000)
+    args = ap.parse_args()
+
+    if args.cmd == "asm":
+        words = assemble(open(args.src).read())
+        write_mem(args.out, words, max(args.words, len(words)))
+        print(f"{args.src}: {len(words)} instructions -> {args.out}")
+    elif args.cmd == "dis":
+        for i, w in enumerate(read_mem(args.mem)):
+            if w or args.all:
+                print(f"{4 * i:08x}:  {w:08x}   {disasm(w, 4 * i)}")
+    elif args.cmd == "run":
+        words = (read_mem(args.prog) if args.prog.endswith(".mem")
+                 else assemble(open(args.prog).read()))
+        iss = ISS(words, io_in=lambda addr: args.switches if addr == 0x11000000 else 0)
+        steps, done = 0, False
+        while steps < args.max_steps and not done:
+            done = not iss.step()
+            steps += 1
+        print(f"{'stopped at `j .`' if done else 'hit --max-steps'} after {steps} steps, pc={iss.pc:08x}")
+        for n in range(1, 32):
+            print(f"x{n:<2} {ABI[n]:>4} = {iss.x[n]:08x}", end="\n" if n % 4 == 3 else "   ")
+        print()
+        for addr, val in iss.io_writes:
+            print(f"IO write {addr:08x} <= {val:08x}")
+
+
+if __name__ == "__main__":
+    main()

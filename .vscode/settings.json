@@ -1,0 +1,16 @@
+{
+    // Verilog-HDL/SystemVerilog extension (mshr-h.veriloghdl): lint on save with Verilator.
+    // otter_pkg.sv is passed first so files that `import otter_pkg::*` resolve.
+    "verilog.linting.linter": "verilator",
+    "verilog.linting.verilator.runAtFileLocation": false,
+    "verilog.linting.verilator.arguments": "-Wno-fatal -Wno-DECLFILENAME -Wno-MULTITOP -DMEM_FILE=\"mem/Test_All.mem\" -Irtl/core -Irtl/memory -Irtl/io rtl/core/otter_pkg.sv",
+    "files.associations": {
+        "*.sv": "systemverilog",
+        "*.svh": "systemverilog",
+        "*.gtkw": "ini"
+    },
+    "files.exclude": {
+        "build": true,
+        "**/__pycache__": true
+    }
+}

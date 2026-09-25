@@ -1,7 +1,9 @@
 `timescale 1ns / 1ps
 // Testbench for OTTER_Wrapper: drives clock/reset/switches, logs 7-seg writes
-// (and LED writes with +VERBOSE), and dumps a waveform to build/otter.vcd.
+// (and LED writes with +VERBOSE), and dumps a waveform (default build/otter.vcd;
+// the Makefile passes +WAVE=build/otter.fst and `vvp -fst` for FST).
 //   Plusargs: +CYCLES=<n> +SWITCHES=<hex> +PASS_COUNT=<n> +VERBOSE
+//             +WAVE=<file> (waveform path) +NOWAVE (no waveform, faster)
 //             +DUMP [+DUMP_LO=<hex> +DUMP_HI=<hex>] (print regs + data words)
 //   Test_All convention: the 7-seg counts up once per passed test and is set
 //   to 0xFFFFFFFF on a failure (x3/gp holds the failing case number).
@@ -14,6 +16,7 @@ module tb_OTTER_Wrapper;
     logic [3:0]  ANODES;
 
     OTTER_Wrapper UUT (.*);
+    otter_probe   probe();   // named per-stage signals for the waveform viewer
 
     always #5 CLK = ~CLK;   // 100 MHz board clock -> 50 MHz CPU clock
 
@@ -22,14 +25,18 @@ module tb_OTTER_Wrapper;
 
     int cycles, pass_count;
     bit verbose;
+    string wave;
     initial begin
         if (!$value$plusargs("CYCLES=%d", cycles))         cycles     = 2000;
         if (!$value$plusargs("SWITCHES=%h", SWITCHES))     SWITCHES   = 16'h0000;
         if (!$value$plusargs("PASS_COUNT=%d", pass_count)) pass_count = -1;
         verbose = $test$plusargs("VERBOSE");
 
-        $dumpfile("build/otter.vcd");
-        $dumpvars(0, tb_OTTER_Wrapper);
+        if (!$test$plusargs("NOWAVE")) begin
+            if (!$value$plusargs("WAVE=%s", wave)) wave = "build/otter.vcd";
+            $dumpfile(wave);
+            $dumpvars(0, tb_OTTER_Wrapper);
+        end
 
         repeat (4) @(posedge UUT.clk_50);
         BTNC = 0;
