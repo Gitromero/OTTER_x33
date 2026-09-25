@@ -19,7 +19,7 @@ module BAG(
     
     //Assign each branch address.
     assign JAL = FROM_PC + J_TYPE;
-    assign JALR = I_TYPE + RS1;
+    assign JALR = (I_TYPE + RS1) & ~32'b1;  // spec: clear bit 0 of the target
     assign BRANCH = FROM_PC + B_TYPE;
     
 endmodule

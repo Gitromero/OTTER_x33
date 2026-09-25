@@ -59,14 +59,13 @@ module CU_DCDR(
             end
             7'b0100011: begin // Store Instructions
                 ALU_SRCB = 2'b10;
-                //REG_WRITE = 1'b1;
-                        MEM_WE2 = 1'b1;
+                MEM_WE2 = 1'b1;
             end
             7'b0000011: begin // Load Instructions
                 ALU_SRCB = 2'b01;
                 RF_WR_SEL = 2'b10;
-                        MEM_RDEN2 = 1'b1;
-                        REG_WRITE = 1'b0;
+                MEM_RDEN2 = 1'b1;
+                REG_WRITE = 1'b1;
             end
             7'b0110111: begin // LUI
                 ALU_FUN = 4'b1001;
@@ -112,7 +111,8 @@ module CU_DCDR(
                 ALU_FUN = {IR_30, IR_FUNCT};
             end
             7'b1100011: begin // B-Type
-            REG_WRITE = 1'b1;
+                // In the pipeline, OTTER resolves branches in EX, so PC_SOURCE
+                // here is unused (BR_* tied to 0) but kept for reference.
                 //nested case statement dependent on the
                 //function three bits.
                 //Because there are six real branch instructions, there

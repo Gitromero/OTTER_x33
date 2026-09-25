@@ -42,6 +42,9 @@
 // Revision 1.05 - changed MEM_WD to MEM_DIN2, changed default to save nothing
 // Revision 1.06 - removed typo in instantiation template
 // Revision 1.07 - remove unused wordAddr1 signal
+// Revision 1.08 - register size/sign/offset/IO-select with the data read so
+//                 MEM_DOUT2 is correct one cycle later (pipelined WB stage);
+//                 init file selectable with `define MEM_FILE
 //
 //////////////////////////////////////////////////////////////////////////////////
                                                                                                                              
@@ -65,12 +68,19 @@
     logic [31:0] memReadWord, ioBuffer, memReadSized;
     logic [1:0] byteOffset;
     logic weAddrValid;      // active when saving (WE) to valid memory address
+
+    // read attributes captured with memReadWord (used by the next-cycle output)
+    logic [1:0] rdSize, rdOffset;
+    logic rdSign, rdIO;
        
     (* rom_style="{distributed | block}" *)
     (* ram_decomp = "power" *) logic [31:0] memory [0:16383];
     
+`ifndef MEM_FILE
+  `define MEM_FILE "Test_All.mem"
+`endif
     initial begin
-        $readmemh("Test_All.mem", memory, 0, 16383);
+        $readmemh(`MEM_FILE, memory);
     end
     
     assign wordAddr2 = MEM_ADDR2[15:2];
@@ -110,13 +120,18 @@
       if (MEM_RDEN1)                       // need EN for extra load cycle to not change instruction
         MEM_DOUT1 <= memory[MEM_ADDR1];
 
-      if (MEM_RDEN2)                       // Read word from memory
+      if (MEM_RDEN2) begin                 // Read word from memory
         memReadWord <= memory[wordAddr2];
+        rdSize      <= MEM_SIZE;
+        rdSign      <= MEM_SIGN;
+        rdOffset    <= byteOffset;
+        rdIO        <= MEM_ADDR2 >= 32'h00010000;
+      end
     end
        
     // Change the data word into sized bytes and sign extend
     always_comb begin
-      case({MEM_SIGN,MEM_SIZE,byteOffset})
+      case({rdSign,rdSize,rdOffset})
         5'b00011: memReadSized = {{24{memReadWord[31]}},memReadWord[31:24]};  // signed byte
         5'b00010: memReadSized = {{24{memReadWord[23]}},memReadWord[23:16]};
         5'b00001: memReadSized = {{24{memReadWord[15]}},memReadWord[15:8]};
@@ -145,14 +160,13 @@
     always_comb begin
       if(MEM_ADDR2 >= 32'h00010000) begin  // external address range
         IO_WR = MEM_WE2;                 // IO Write
-        MEM_DOUT2 = ioBuffer;            // IO read from buffer
         weAddrValid = 0;                 // address beyond memory range
       end
       else begin
         IO_WR = 0;                  // not MMIO
-        MEM_DOUT2 = memReadSized;   // output sized and sign extended data
         weAddrValid = MEM_WE2;      // address in valid memory range
       end
+      MEM_DOUT2 = rdIO ? ioBuffer : memReadSized;  // IO read from buffer
     end
         
  endmodule
