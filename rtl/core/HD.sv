@@ -1,59 +1,96 @@
 `timescale 1ns / 1ps
 //////////////////////////////////////////////////////////////////////////////////
+// Company: 
+// Engineer: 
+// 
+// Create Date: 08/09/2025 11:10:53 PM
+// Design Name: 
 // Module Name: HD
-// Description: Hazard detection unit for the 5-stage OTTER.
-//              - Forwarding selects for the EX operands
-//                  0 = register file value, 1 = MEM stage result, 2 = WB data
-//              - STALL: load-use hazard (load in EX, dependent instr in ID).
-//                Holds PC and IF/ID one cycle and inserts a bubble into EX.
-//              - FLUSH: taken branch/jump in EX; squash the two younger
-//                instructions (in IF and ID).
+// Project Name: 
+// Target Devices: 
+// Tool Versions: 
+// Description: 
+// 
+// Dependencies: 
+// 
+// Revision:
+// Revision 0.01 - File Created
+// Additional Comments:
+// 
 //////////////////////////////////////////////////////////////////////////////////
-module HD(
-    input logic ID_valid,
+
+module HD(  
+
+    input logic [6:0] opcode,
     input logic [4:0] ID_rs1,
     input logic [4:0] ID_rs2,
-    input logic ID_rs1_used,
-    input logic ID_rs2_used,
+
     input logic [4:0] EX_rs1,
     input logic [4:0] EX_rs2,
-    input logic EX_rs1_used,
-    input logic EX_rs2_used,
+
     input logic [4:0] EX_rd,
-    input logic EX_memRead2,
     input logic [4:0] MEM_rd,
-    input logic MEM_REGWE,
     input logic [4:0] WB_rd,
-    input logic WB_REGWE,
+
     input logic [2:0] PC_src,
+
+    input logic MEM_REGWE,
+    input logic WB_REGWE,
+    input logic ALU_memRead2,
+
+
     output logic [1:0] fsel1,
     output logic [1:0] fsel2,
+
     output logic STALL,
     output logic FLUSH
     );
 
-    // Forwarding: the youngest producer (MEM) wins over the older one (WB).
-    // *_used is only set for rs != x0, so x0 is never forwarded.
     always_comb begin
         fsel1 = 2'b00;
-        if (EX_rs1_used && MEM_REGWE && MEM_rd == EX_rs1)
-            fsel1 = 2'b01;
-        else if (EX_rs1_used && WB_REGWE && WB_rd == EX_rs1)
-            fsel1 = 2'b10;
-
         fsel2 = 2'b00;
-        if (EX_rs2_used && MEM_REGWE && MEM_rd == EX_rs2)
-            fsel2 = 2'b01;
-        else if (EX_rs2_used && WB_REGWE && WB_rd == EX_rs2)
-            fsel2 = 2'b10;
+
+        STALL = 1'b0;
+        FLUSH = 1'b0;
+//maybe do id and change the logix
+
+//RS1 forwarding MUX
+        if (MEM_rd == EX_rs1 && (MEM_rd != 0) && MEM_REGWE) begin	// mem.inst ALU_result EDIT: Changing MEM_rd => EX_rd EDIT2: CHANGING BACK TO MEM
+            fsel1 = 2'b01; 						// ALU foaward case
+        end
+        else if (WB_rd == EX_rs1 && (WB_rd != 0) && WB_REGWE) begin	// mem_dout2 wired 
+            fsel1 = 2'b10; 						//  MEM foward case
+        end
+        else begin
+            fsel1 = 2'b00; 						// deafault where rs1 is not foward
+        end
+        
+//RS2 Fowarding MUX        
+        if (MEM_rd == EX_rs2 && (MEM_rd != 0) && MEM_REGWE)begin 	// mem.inst ALU_result EDIT: Changing MEM_rd => EX_rd
+		fsel2 = 2'b01;						 // ALU foaward case
+	end
+        else if (WB_rd == EX_rs2 && (WB_rd != 0) && WB_REGWE) begin	// mem_dout2 wired 
+		fsel2 = 2'b10; 						//  MEM foward case
+	end
+        else begin
+		fsel2 = 2'b00; 						// deafault where rs1 is not foward
+	end
+
+// Load-use data hazard
+        if ((opcode == 7'b0000011) && ((ID_rs1 == EX_rd) || (ID_rs2 == EX_rd))) begin
+            STALL = 1'b1;
+        end
+        else begin
+            STALL = 1'b0;
+        end
+        
+// Branch Control Hazard
+        if (PC_src != 3'b000) begin
+            FLUSH = 1'b1;
+        end
+        else begin
+            FLUSH = 1'b0;
+        end
     end
-
-    // Load data is only available in WB, so a dependent instruction right
-    // behind a load waits one cycle and then gets it through fsel = 2.
-    assign STALL = ID_valid && EX_memRead2 && EX_rd != 5'd0
-                && ((ID_rs1_used && ID_rs1 == EX_rd)
-                 || (ID_rs2_used && ID_rs2 == EX_rd));
-
-    assign FLUSH = PC_src != 3'b000;
 
 endmodule
